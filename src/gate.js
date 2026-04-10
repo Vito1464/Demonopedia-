@@ -1,7 +1,7 @@
 // ─── Gate Detail View ───────────────────────────────────────
 // Editable gate protocol page with people tagging and status control
 
-import { store, REGION_COLORS, NODE_COLORS } from "/src/store.js?t=1775777628350";
+import { store, REGION_COLORS, NODE_COLORS } from "/src/store.js";
 
 function getActorColor(actorId) {
   const actors = store.getActors();

@@ -1,7 +1,7 @@
 // ─── Dossier View ───────────────────────────────────────────
 // Actor detail page with editable fields and intelligence leaks
 
-import { store, REGION_COLORS, NODE_COLORS } from "/src/store.js?t=1775777628350";
+import { store, REGION_COLORS, NODE_COLORS } from "/src/store.js";
 
 function generateGeometricImage(canvas, seed) {
   const ctx = canvas.getContext('2d');

@@ -1,7 +1,7 @@
 // ─── Pipeline View ──────────────────────────────────────────
 // Subway-style flowchart with draggable gates and animated transit dots
 
-import { store, REGION_COLORS, NODE_COLORS } from "/src/store.js?t=1775777628350";
+import { store, REGION_COLORS, NODE_COLORS } from "/src/store.js";
 
 let svgEl, container;
 let currentPipeline = null;

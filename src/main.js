@@ -1,12 +1,12 @@
 // ─── Demonopedia — Main Entry ────────────────────────
 // SPA Router + App Shell
 
-import "/src/style.css?t=1775777587197";
-import { store, REGION_COLORS } from "/src/store.js?t=1775777628350";
-import { mountNetwork, unmountNetwork, showAddNodeModal } from "/src/network.js?t=1775777729136";
-import { mountDossier } from "/src/dossier.js?t=1775777628350";
-import { mountPipeline, unmountPipeline } from "/src/pipeline.js?t=1775777628350";
-import { mountGateDetail } from "/src/gate.js?t=1775777628350";
+import "/src/style.css";
+import { store, REGION_COLORS } from "/src/store.js";
+import { mountNetwork, unmountNetwork, showAddNodeModal } from "/src/network.js";
+import { mountDossier } from "/src/dossier.js";
+import { mountPipeline, unmountPipeline } from "/src/pipeline.js";
+import { mountGateDetail } from "/src/gate.js";
 
 let currentView = null;
 

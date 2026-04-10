@@ -2,7 +2,7 @@
 // Force-directed graph with gravitational tag regions
 // Obsidian-style bouncy nodes with physics simulation
 
-import { store, REGION_COLORS, REGION_CORNERS, NODE_COLORS } from "/src/store.js?t=1775777628350";
+import { store, REGION_COLORS, REGION_CORNERS, NODE_COLORS } from "/src/store.js";
 
 const PHYSICS = {
   repulsion: 4000,        // Node-node repulsion strength
