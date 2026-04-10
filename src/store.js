@@ -166,6 +166,29 @@ class Store {
     this.data = null;
     this.listeners = [];
     this.load();
+
+    // Initialize GunJS
+    if (window.Gun) {
+      this.gun = Gun(['https://gun-manhattan.herokuapp.com/gun']);
+      this.db = this.gun.get('demonopedia-global-state-v10'); // use a specific version key
+
+      this.db.on((node) => {
+        if (!node || !node.networkState) return;
+        try {
+          const remoteData = JSON.parse(node.networkState);
+          
+          // Basic conflict resolution - avoid infinite loops if it's the exact same data
+          if (JSON.stringify(this.data) !== node.networkState) {
+             this.data = remoteData;
+             // Save locally without rebroadcasting
+             localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data));
+             this.listeners.forEach(fn => fn(this.data));
+          }
+        } catch (e) {
+          console.error("Failed to parse remote sync data", e);
+        }
+      });
+    }
   }
 
   load() {
@@ -173,11 +196,10 @@ class Store {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         this.data = JSON.parse(saved);
-        // Ensure pipelines exist
         if (!this.data.pipelines) {
-          const seed = createSeedData();
-          this.data.pipelines = seed.pipelines;
-          this.save();
+           const seed = createSeedData();
+           this.data.pipelines = seed.pipelines;
+           this.save();
         }
       } else {
         this.data = createSeedData();
@@ -192,7 +214,13 @@ class Store {
 
   save() {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data));
+      const stateStr = JSON.stringify(this.data);
+      localStorage.setItem(STORAGE_KEY, stateStr);
+      
+      // Broadcast to network
+      if (this.db) {
+         this.db.put({ networkState: stateStr, timestamp: Date.now() });
+      }
     } catch (e) {
       console.error('Failed to save store:', e);
     }
