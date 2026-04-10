@@ -621,8 +621,6 @@ function createControls() {
   controls.className = 'network-controls';
   controls.innerHTML = `
     <button id="net-connect-btn" style="background:#fff;border:none;border-radius:12px;width:40px;height:40px;padding:0;display:inline-flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;cursor:pointer;color:#444;box-shadow:0 4px 14px rgba(0,0,0,0.08);margin-right:8px;vertical-align:middle;transition:all 0.2s;">◇</button><button id="net-add" style="background:#1a1a1a;color:#fff;border-color:#000;" title="Add Node">+</button>
-    <button id="net-filter" title="Filter">≡</button>
-    <button id="net-layers" title="Layers">◇</button>
   `;
   container.appendChild(controls);
 
