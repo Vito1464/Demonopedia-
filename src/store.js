@@ -169,7 +169,11 @@ class Store {
 
     // Initialize GunJS
     if (window.Gun) {
-      this.gun = Gun(['https://gun-manhattan.herokuapp.com/gun']);
+      this.gun = Gun([
+        'https://gun-manhattan.herokuapp.com/gun',
+        'https://relay.peer.ooo/gun',
+        'https://peer.wallie.io/gun'
+      ]);
       this.db = this.gun.get('demonopedia-global-state-v10'); // use a specific version key
 
       this.db.on((node) => {
