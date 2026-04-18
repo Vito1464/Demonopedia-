@@ -5,10 +5,10 @@
 import { auth } from '/src/auth.js';
 
 const REGION_COLORS = {
-  FINANCIAL:   { bg: 'rgba(193,127,78,0.12)', border: '#C17F4E', text: '#C17F4E', glow: 'rgba(193,127,78,0.25)' },
-  LOGISTICS:   { bg: 'rgba(74,124,89,0.12)',  border: '#4A7C59', text: '#4A7C59', glow: 'rgba(74,124,89,0.25)' },
-  COMMS:       { bg: 'rgba(107,123,110,0.12)', border: '#6B7B6E', text: '#6B7B6E', glow: 'rgba(107,123,110,0.25)' },
-  RECRUITMENT: { bg: 'rgba(139,115,85,0.12)',  border: '#8B7355', text: '#8B7355', glow: 'rgba(139,115,85,0.25)' },
+  FINANCIAL:   { bg: 'rgba(74,107,94,0.18)',   border: '#4A6B5E', text: '#3A5A4E', glow: 'rgba(74,107,94,0.35)' },
+  LOGISTICS:   { bg: 'rgba(176,112,85,0.15)',   border: '#B07055', text: '#96553D', glow: 'rgba(176,112,85,0.30)' },
+  COMMS:       { bg: 'rgba(123,107,154,0.15)',  border: '#7B6B9A', text: '#6A5A8A', glow: 'rgba(123,107,154,0.30)' },
+  RECRUITMENT: { bg: 'rgba(90,128,112,0.15)',   border: '#5A8070', text: '#3D6B5A', glow: 'rgba(90,128,112,0.30)' },
 };
 
 const REGION_CORNERS = {

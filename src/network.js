@@ -43,6 +43,19 @@ function getNodeColor(idx) {
   return NODE_COLORS[idx % NODE_COLORS.length];
 }
 
+// Returns the color for a node based on its primary tag, falling back to index color
+function getNodeTagColor(tags, idx) {
+  if (tags && tags.length > 0) {
+    const c = REGION_COLORS[tags[0]];
+    if (c) return c.border;
+    // For dynamically-generated tags, derive a hue from the tag name
+    const hash = Array.from(tags[0]).reduce((a, b) => a + b.charCodeAt(0), 0);
+    const hue = (hash * 137.5) % 360;
+    return `hsl(${hue}, 40%, 42%)`;
+  }
+  return NODE_COLORS[idx % NODE_COLORS.length];
+}
+
 function initNodes() {
   const actors = store.getActors();
   const storeEdges = store.getEdges();
@@ -67,7 +80,7 @@ function initNodes() {
       vx: 0,
       vy: 0,
       radius: PHYSICS.nodeRadius,
-      color: getNodeColor(i),
+      color: getNodeTagColor(tags, i),
       actor: actor,
       tags: tags,
       springFactor: 0, // For bounce animation
@@ -278,11 +291,13 @@ function drawNodes() {
     const bounce = 1 + node.springFactor * 0.5 * Math.sin(Date.now() / 60);
     const r = (isHovered ? PHYSICS.hoverRadius : node.radius) * bounce;
 
-    // Glow effect for hovered
+    // Glow effect for hovered — use the node's own color
     if (isHovered && !dimmed) {
       ctx.beginPath();
-      ctx.arc(node.x, node.y, r + 8, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(193,127,78,0.15)`;
+      ctx.arc(node.x, node.y, r + 10, 0, Math.PI * 2);
+      // Parse node color into a soft glow
+      const glowColor = (REGION_COLORS[node.tags[0]] || {}).glow || 'rgba(100,100,100,0.15)';
+      ctx.fillStyle = glowColor;
       ctx.fill();
     }
 
@@ -808,7 +823,7 @@ function showAddNodeModal() {
       vx: (Math.random() - 0.5) * 4,
       vy: (Math.random() - 0.5) * 4,
       radius: PHYSICS.nodeRadius,
-      color: getNodeColor(nodes.length),
+      color: getNodeTagColor(newActor.tags, nodes.length),
       actor: newActor,
       tags: newActor.tags,
       springFactor: 2,
