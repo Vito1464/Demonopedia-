@@ -312,6 +312,9 @@ function animateTransitDots() {
     const from = dot.fromGate;
     const to = dot.toGate;
 
+    // Dynamically check if the target gate is closed (pending)
+    const stopAtTarget = to.status === 'pending';
+
     const x1 = from.x + GATE_W;
     const y1 = from.y + GATE_H / 2;
     const x2 = to.x;
@@ -322,13 +325,20 @@ function animateTransitDots() {
     if (!dot.stopped) {
       dot.progress += dot.speed / 300;
       if (dot.progress >= 1) {
-        if (dot.stopAtTarget) {
+        if (stopAtTarget) {
           dot.progress = 0.95;
           dot.stopped = true;
         } else {
           dot.progress = 0;
         }
+      } else if (stopAtTarget && dot.progress >= 0.95) {
+        // Hit the gate boundary — stop
+        dot.progress = 0.95;
+        dot.stopped = true;
       }
+    } else if (!stopAtTarget) {
+      // Gate was opened — resume
+      dot.stopped = false;
     }
 
     // Calculate position

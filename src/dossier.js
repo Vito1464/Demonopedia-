@@ -122,6 +122,7 @@ export function mountDossier(containerEl, actorId) {
           <div class="dossier-field">
             <label>Caste</label>
             <select data-field="caste" class="actor-field">
+              <option value="Unknown" ${!actor.caste || actor.caste === 'Unknown' ? 'selected' : ''}>Unknown</option>
               <optgroup label="Brahmin Combinations">
                 <option value="Brahmin Brahmin" ${actor.caste === 'Brahmin Brahmin' ? 'selected' : ''}>Brahmin Brahmin</option>
                 <option value="Brahmin Warrior" ${actor.caste === 'Brahmin Warrior' ? 'selected' : ''}>Brahmin Warrior</option>
@@ -151,6 +152,7 @@ export function mountDossier(containerEl, actorId) {
           <div class="dossier-field">
             <label>Race</label>
             <select data-field="race" class="actor-field">
+              <option value="Unknown" ${!actor.race || actor.race === 'Unknown' ? 'selected' : ''}>Unknown</option>
               <option value="Brahmin" ${actor.race === 'Brahmin' ? 'selected' : ''}>Brahmin</option>
               <option value="Warrior" ${actor.race === 'Warrior' ? 'selected' : ''}>Warrior</option>
               <option value="Merchant" ${actor.race === 'Merchant' ? 'selected' : ''}>Merchant</option>
@@ -160,11 +162,20 @@ export function mountDossier(containerEl, actorId) {
           <div class="dossier-field">
             <label>Religion</label>
             <select data-field="religion" class="actor-field">
+              <option value="Unknown" ${!actor.religion || actor.religion === 'Unknown' ? 'selected' : ''}>Unknown</option>
               <option value="Hindu" ${actor.religion === 'Hindu' ? 'selected' : ''}>Hindu</option>
               <option value="Jewish" ${actor.religion === 'Jewish' ? 'selected' : ''}>Jewish</option>
               <option value="Christian" ${actor.religion === 'Christian' ? 'selected' : ''}>Christian</option>
               <option value="Muslim" ${actor.religion === 'Muslim' ? 'selected' : ''}>Muslim</option>
               <option value="Hedonist" ${actor.religion === 'Hedonist' ? 'selected' : ''}>Hedonist</option>
+            </select>
+          </div>
+          <div class="dossier-field">
+            <label>Sex</label>
+            <select data-field="sex" class="actor-field">
+              <option value="Unknown" ${!actor.sex || actor.sex === 'Unknown' ? 'selected' : ''}>Unknown</option>
+              <option value="Male" ${actor.sex === 'Male' ? 'selected' : ''}>Male</option>
+              <option value="Female" ${actor.sex === 'Female' ? 'selected' : ''}>Female</option>
             </select>
           </div>
           <div class="dossier-field">
@@ -174,6 +185,7 @@ export function mountDossier(containerEl, actorId) {
           <div class="dossier-field">
             <label>Spiritual Authority</label>
             <select data-field="spiritualAuthority" class="actor-field">
+              <option value="Unknown" ${!actor.spiritualAuthority || actor.spiritualAuthority === 'Unknown' ? 'selected' : ''}>Unknown</option>
               <optgroup label="Brahmin Combinations">
                 <option value="Brahmin Brahmin" ${actor.spiritualAuthority === 'Brahmin Brahmin' ? 'selected' : ''}>Brahmin Brahmin</option>
                 <option value="Brahmin Warrior" ${actor.spiritualAuthority === 'Brahmin Warrior' ? 'selected' : ''}>Brahmin Warrior</option>
@@ -203,6 +215,7 @@ export function mountDossier(containerEl, actorId) {
           <div class="dossier-field">
             <label>Age</label>
             <select data-field="age" class="actor-field">
+              <option value="Unknown" ${!actor.age || actor.age === 'Unknown' ? 'selected' : ''}>Unknown</option>
               <option value="Child" ${actor.age === 'Child' ? 'selected' : ''}>Child</option>
               <option value="Teenager" ${actor.age === 'Teenager' ? 'selected' : ''}>Teenager</option>
               <option value="Young adult" ${actor.age === 'Young adult' ? 'selected' : ''}>Young adult</option>

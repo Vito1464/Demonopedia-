@@ -225,7 +225,10 @@ function drawRegionGradients() {
     }
 
     ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, width, height);
+    // Cover full visible area regardless of zoom/pan
+    const visLeft = -pan.x / zoom;
+    const visTop = -pan.y / zoom;
+    ctx.fillRect(visLeft, visTop, width / zoom, height / zoom);
   });
 }
 
@@ -311,11 +314,16 @@ function drawNodes() {
 }
 
 function render() {
-  ctx.clearRect(0, 0, width, height);
+  const dpr = window.devicePixelRatio || 1;
 
-  // Background
+  // Clear with base transform
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, width, height);
   ctx.fillStyle = '#fdfcf9';
   ctx.fillRect(0, 0, width, height);
+
+  // Apply zoom + pan
+  ctx.setTransform(dpr * zoom, 0, 0, dpr * zoom, pan.x * dpr, pan.y * dpr);
 
   drawRegionGradients();
   drawEdges();
@@ -325,10 +333,15 @@ function render() {
   animFrame = requestAnimationFrame(render);
 }
 
+function screenToLogical(mx, my) {
+  return { x: (mx - pan.x) / zoom, y: (my - pan.y) / zoom };
+}
+
 function getNodeAtPos(mx, my) {
+  const { x: lx, y: ly } = screenToLogical(mx, my);
   for (let i = nodes.length - 1; i >= 0; i--) {
     const node = nodes[i];
-    const dx = mx - node.x, dy = my - node.y;
+    const dx = lx - node.x, dy = ly - node.y;
     const dist = Math.sqrt(dx * dx + dy * dy);
     if (dist < PHYSICS.hoverRadius + 4) return node;
   }
@@ -336,13 +349,14 @@ function getNodeAtPos(mx, my) {
 }
 
 function getRegionAtPos(mx, my) {
+  const { x: lx, y: ly } = screenToLogical(mx, my);
   const allTags = store.getAllTags();
   for (const tag of allTags) {
     const corner = REGION_CORNERS[tag];
     if (!corner) continue;
     const cx = corner.x * width;
     const cy = corner.y * height;
-    const dx = mx - cx, dy = my - cy;
+    const dx = lx - cx, dy = ly - cy;
     const dist = Math.sqrt(dx * dx + dy * dy);
     if (dist < Math.min(width, height) * 0.18) return tag;
   }
@@ -356,16 +370,17 @@ function setupEvents() {
     const rect = canvas.getBoundingClientRect();
     const mx = e.clientX - rect.left;
     const my = e.clientY - rect.top;
-    
-    mousePos.x = mx;
-    mousePos.y = my;
+    const { x: lx, y: ly } = screenToLogical(mx, my);
+
+    mousePos.x = lx;
+    mousePos.y = ly;
 
     if (draggedNode) {
-      draggedNode.x = mx - dragOffset.x;
-      draggedNode.y = my - dragOffset.y;
+      draggedNode.x = lx - dragOffset.x;
+      draggedNode.y = ly - dragOffset.y;
       draggedNode.vx = 0;
       draggedNode.vy = 0;
-      
+
       if (Math.hypot(mx - mousedownPos.x, my - mousedownPos.y) > 3) {
         didDrag = true;
       }
@@ -398,8 +413,9 @@ function setupEvents() {
       didDrag = false;
       mousedownPos.x = mx;
       mousedownPos.y = my;
-      dragOffset.x = mx - node.x;
-      dragOffset.y = my - node.y;
+      const { x: lx, y: ly } = screenToLogical(mx, my);
+      dragOffset.x = lx - node.x;
+      dragOffset.y = ly - node.y;
       canvas.classList.add('grabbing');
       e.preventDefault();
     }
@@ -640,7 +656,8 @@ function createControls() {
   container.appendChild(bottomBar);
 
   bottomBar.querySelector('#net-reset').addEventListener('click', () => {
-    // Re-randomize positions
+    zoom = 1;
+    pan = { x: 0, y: 0 };
     nodes.forEach(node => {
       const tags = node.tags;
       if (tags.length > 0 && REGION_CORNERS[tags[0]]) {
@@ -656,6 +673,34 @@ function createControls() {
       node.springFactor = 1;
     });
   });
+
+  bottomBar.querySelector('#net-zoom-in').addEventListener('click', () => {
+    const prevZoom = zoom;
+    zoom = Math.min(zoom * 1.3, 5);
+    // Zoom toward canvas center
+    pan.x = width / 2 - (width / 2 - pan.x) * (zoom / prevZoom);
+    pan.y = height / 2 - (height / 2 - pan.y) * (zoom / prevZoom);
+  });
+
+  bottomBar.querySelector('#net-zoom-out').addEventListener('click', () => {
+    const prevZoom = zoom;
+    zoom = Math.max(zoom / 1.3, 0.2);
+    pan.x = width / 2 - (width / 2 - pan.x) * (zoom / prevZoom);
+    pan.y = height / 2 - (height / 2 - pan.y) * (zoom / prevZoom);
+  });
+
+  // Mouse wheel zoom
+  canvas.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    const delta = e.deltaY > 0 ? 0.85 : 1.15;
+    const prevZoom = zoom;
+    zoom = Math.max(0.2, Math.min(5, zoom * delta));
+    pan.x = mx - (mx - pan.x) * (zoom / prevZoom);
+    pan.y = my - (my - pan.y) * (zoom / prevZoom);
+  }, { passive: false });
 }
 
 function showAddNodeModal() {

@@ -1,7 +1,8 @@
 // ─── Data Store ─────────────────────────────────────────────
 // Manages all application state with localStorage persistence
+// Per-user namespacing; admin sees combined data from all users
 
-const STORAGE_KEY = 'living-network-data';
+import { auth } from '/src/auth.js';
 
 const REGION_COLORS = {
   FINANCIAL:   { bg: 'rgba(193,127,78,0.12)', border: '#C17F4E', text: '#C17F4E', glow: 'rgba(193,127,78,0.25)' },
@@ -23,6 +24,10 @@ function generateId() {
   return 'id-' + Date.now().toString(36) + '-' + Math.random().toString(36).substr(2, 6);
 }
 
+function getStorageKey(userId) {
+  return 'demonopedia-data-' + (userId || 'guest');
+}
+
 function createSeedData() {
   const actors = [
     {
@@ -30,7 +35,7 @@ function createSeedData() {
       role: 'Operational Commander', affiliation: 'Seventh Circle',
       religion: 'Undisclosed', tribe: 'Eastern Caucus', authority: 'Senior Command',
       age: '47', quote: '"He does not build walls. He builds the spaces between them, where fear grows unattended."',
-      imageUrl: null, tags: ['FINANCIAL', 'LOGISTICS'],
+      imageUrl: null, tags: ['FINANCIAL', 'LOGISTICS'], sex: 'Unknown',
       intelLeaks: [
         { id: 'il-1', type: 'OBJECTIVE', title: 'Objective', description: 'To establish covert funding corridors through shell companies in three EU nations.', tags: ['FINANCIAL'] },
         { id: 'il-2', type: 'IMPACT', title: 'Impact', description: 'Estimated €4.2M in untraceable funds redirected since 2022.', tags: ['FINANCIAL'] },
@@ -41,7 +46,7 @@ function createSeedData() {
       role: 'Logistics Operative', affiliation: 'Seventh Circle',
       religion: 'Undisclosed', tribe: 'Northern Cell', authority: 'Mid-Rank',
       age: '31', quote: '"She moves through borders the way water moves through stone — slowly, invisibly, inevitably."',
-      imageUrl: null, tags: ['LOGISTICS', 'COMMS'],
+      imageUrl: null, tags: ['LOGISTICS', 'COMMS'], sex: 'Female',
       intelLeaks: [
         { id: 'il-3', type: 'COUNTERMEASURE', title: 'Countermeasure', description: 'Uses rotating SIM cards and dead-drop protocols across 6 transit corridors.', tags: ['LOGISTICS', 'COMMS'] },
       ]
@@ -51,7 +56,7 @@ function createSeedData() {
       role: 'Financial Coordinator', affiliation: 'Outer Ring',
       religion: 'Orthodox (lapsed)', tribe: 'Baltic Network', authority: 'Senior Finance',
       age: '54', quote: '"Every transaction is a message. He writes novels in ledger entries."',
-      imageUrl: null, tags: ['FINANCIAL'],
+      imageUrl: null, tags: ['FINANCIAL'], sex: 'Male',
       intelLeaks: [
         { id: 'il-4', type: 'OBJECTIVE', title: 'Objective', description: 'Maintain financial opacity through layered cryptocurrency exchanges.', tags: ['FINANCIAL'] },
       ]
@@ -61,7 +66,7 @@ function createSeedData() {
       role: 'Communications Lead', affiliation: 'Seventh Circle',
       religion: 'Animist Traditions', tribe: 'West African Nexus', authority: 'Specialist',
       age: '28', quote: '"No signal intercepted. No trace recovered. She is the silence between the static."',
-      imageUrl: null, tags: ['COMMS', 'RECRUITMENT'],
+      imageUrl: null, tags: ['COMMS', 'RECRUITMENT'], sex: 'Female',
       intelLeaks: [
         { id: 'il-5', type: 'IMPACT', title: 'Impact', description: 'Developed an encrypted mesh network used across 4 operational theatres.', tags: ['COMMS'] },
       ]
@@ -71,7 +76,7 @@ function createSeedData() {
       role: 'Planning Director', affiliation: 'Seventh Circle',
       religion: 'Sufi (nominal)', tribe: 'Central Command', authority: 'Deputy Leader',
       age: '42', quote: '"He plays chess in four dimensions. By the time you see the board, the game is already over."',
-      imageUrl: null, tags: ['LOGISTICS', 'RECRUITMENT'],
+      imageUrl: null, tags: ['LOGISTICS', 'RECRUITMENT'], sex: 'Male',
       intelLeaks: [
         { id: 'il-6', type: 'OBJECTIVE', title: 'Objective', description: 'Coordinate multi-stage operational deployments across three continents.', tags: ['LOGISTICS'] },
         { id: 'il-7', type: 'COUNTERMEASURE', title: 'Countermeasure', description: 'Recruiting from displaced populations using humanitarian cover organizations.', tags: ['RECRUITMENT'] },
@@ -82,7 +87,7 @@ function createSeedData() {
       role: 'Asset Controller', affiliation: 'Outer Ring',
       religion: 'Secular', tribe: 'Mediterranean Cell', authority: 'Handler',
       age: '36', quote: '"She does not give orders. She gives reasons — and that is far more dangerous."',
-      imageUrl: null, tags: ['FINANCIAL', 'COMMS'],
+      imageUrl: null, tags: ['FINANCIAL', 'COMMS'], sex: 'Female',
       intelLeaks: [
         { id: 'il-8', type: 'IMPACT', title: 'Impact', description: 'Manages 12 deep-cover assets across European financial institutions.', tags: ['FINANCIAL', 'COMMS'] },
       ]
@@ -92,7 +97,7 @@ function createSeedData() {
       role: 'Technical Specialist', affiliation: 'Seventh Circle',
       religion: 'Undisclosed', tribe: 'Southern Technical Unit', authority: 'Specialist',
       age: '33', quote: '"What others see as infrastructure, he sees as vulnerability. Every bridge is a choke point."',
-      imageUrl: null, tags: ['LOGISTICS'],
+      imageUrl: null, tags: ['LOGISTICS'], sex: 'Male',
       intelLeaks: [
         { id: 'il-9', type: 'OBJECTIVE', title: 'Objective', description: 'Identify and map critical infrastructure weak points in target regions.', tags: ['LOGISTICS'] },
       ]
@@ -102,7 +107,7 @@ function createSeedData() {
       role: 'Recruitment Coordinator', affiliation: 'Outer Ring',
       religion: 'None declared', tribe: 'Eastern European Network', authority: 'Mid-Rank',
       age: '39', quote: '"She trades in loyalty. The currency is desperation, and she never runs out of buyers."',
-      imageUrl: null, tags: ['FINANCIAL', 'RECRUITMENT'],
+      imageUrl: null, tags: ['FINANCIAL', 'RECRUITMENT'], sex: 'Female',
       intelLeaks: [
         { id: 'il-10', type: 'COUNTERMEASURE', title: 'Countermeasure', description: 'Uses legitimate employment agencies as fronts for recruitment pipelines.', tags: ['RECRUITMENT', 'FINANCIAL'] },
       ]
@@ -165,6 +170,7 @@ class Store {
   constructor() {
     this.data = null;
     this.listeners = [];
+    this._userId = null;
     this.load();
 
     // Initialize GunJS
@@ -174,59 +180,153 @@ class Store {
         'https://relay.peer.ooo/gun',
         'https://peer.wallie.io/gun'
       ]);
-      this.db = this.gun.get('demonopedia-global-state-v10'); // use a specific version key
+    }
+  }
 
+  // ─── Load data for current user ───
+  load() {
+    const user = auth.getCurrentUser();
+    const userId = user ? user.id : 'guest';
+    this._userId = userId;
+
+    if (auth.isAdmin() && userId === 'admin') {
+      // Admin: load all users' data merged
+      this.data = this._loadAdminData();
+    } else {
+      this.data = this._loadUserData(userId);
+    }
+
+    // Set up GunJS sync for this user
+    if (window.Gun && this.gun && userId !== 'guest') {
+      const gunKey = 'demonopedia-state-' + userId;
+      this.db = this.gun.get(gunKey);
       this.db.on((node) => {
         if (!node || !node.networkState) return;
         try {
           const remoteData = JSON.parse(node.networkState);
-          
-          // Basic conflict resolution - avoid infinite loops if it's the exact same data
           if (JSON.stringify(this.data) !== node.networkState) {
-             this.data = remoteData;
-             // Save locally without rebroadcasting
-             localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data));
-             this.listeners.forEach(fn => fn(this.data));
+            this.data = remoteData;
+            localStorage.setItem(getStorageKey(userId), JSON.stringify(this.data));
+            this.listeners.forEach(fn => fn(this.data));
           }
         } catch (e) {
-          console.error("Failed to parse remote sync data", e);
+          console.error('Failed to parse remote sync data', e);
         }
       });
     }
   }
 
-  load() {
+  _loadUserData(userId) {
+    const key = getStorageKey(userId);
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
+      const saved = localStorage.getItem(key);
       if (saved) {
-        this.data = JSON.parse(saved);
-        if (!this.data.pipelines) {
-           const seed = createSeedData();
-           this.data.pipelines = seed.pipelines;
-           this.save();
+        const d = JSON.parse(saved);
+        if (!d.pipelines) {
+          d.pipelines = createSeedData().pipelines;
+          localStorage.setItem(key, JSON.stringify(d));
         }
+        return d;
       } else {
-        this.data = createSeedData();
-        this.save();
+        const seed = createSeedData();
+        localStorage.setItem(key, JSON.stringify(seed));
+        return seed;
       }
-    } catch (e) {
-      console.error('Failed to load store:', e);
-      this.data = createSeedData();
-      this.save();
+    } catch {
+      const seed = createSeedData();
+      return seed;
     }
   }
 
-  save() {
-    try {
-      const stateStr = JSON.stringify(this.data);
-      localStorage.setItem(STORAGE_KEY, stateStr);
-      
-      // Broadcast to network
-      if (this.db) {
-         this.db.put({ networkState: stateStr, timestamp: Date.now() });
+  // Admin: merge data from all users
+  _loadAdminData() {
+    const allUsers = auth.getAllUsers();
+    const merged = { actors: [], edges: [], pipelines: {}, nextNodeColor: 0 };
+
+    // Always load admin's own data first as base
+    const adminData = this._loadUserData('admin');
+    merged.actors.push(...adminData.actors.map(a => ({ ...a, _userId: 'admin' })));
+    merged.edges.push(...adminData.edges);
+    merged.pipelines = { ...adminData.pipelines };
+
+    // Merge in all other users' data
+    allUsers.forEach(user => {
+      if (user.id === 'admin') return;
+      try {
+        const key = getStorageKey(user.id);
+        const saved = localStorage.getItem(key);
+        if (!saved) return;
+        const userData = JSON.parse(saved);
+        if (!userData) return;
+
+        // Tag actors with owner username
+        (userData.actors || []).forEach(actor => {
+          if (!merged.actors.find(a => a.id === actor.id)) {
+            merged.actors.push({ ...actor, _userId: user.id, _ownerName: user.username });
+          }
+        });
+
+        // Merge edges
+        (userData.edges || []).forEach(edge => {
+          if (!merged.edges.find(e => e.source === edge.source && e.target === edge.target)) {
+            merged.edges.push(edge);
+          }
+        });
+
+        // Merge pipelines
+        Object.entries(userData.pipelines || {}).forEach(([tag, pipe]) => {
+          if (!merged.pipelines[tag]) {
+            merged.pipelines[tag] = pipe;
+          } else {
+            // Merge gates
+            (pipe.gates || []).forEach(gate => {
+              if (!merged.pipelines[tag].gates.find(g => g.id === gate.id)) {
+                merged.pipelines[tag].gates.push(gate);
+              }
+            });
+          }
+        });
+      } catch { /* skip corrupt data */ }
+    });
+
+    return merged;
+  }
+
+  // Returns per-user data snapshots for admin panel
+  getUsersWithData() {
+    if (!auth.isAdmin()) return [];
+    return auth.getAllUsers().map(user => {
+      try {
+        const key = getStorageKey(user.id);
+        const saved = localStorage.getItem(key);
+        const userData = saved ? JSON.parse(saved) : null;
+        return {
+          ...user,
+          actorCount: userData ? (userData.actors || []).length : 0,
+          pipelineCount: userData ? Object.keys(userData.pipelines || {}).length : 0,
+        };
+      } catch {
+        return { ...user, actorCount: 0, pipelineCount: 0 };
       }
-    } catch (e) {
-      console.error('Failed to save store:', e);
+    });
+  }
+
+  save() {
+    if (auth.isAdmin()) {
+      // Admin saves go to admin's own store only (not merged)
+      const key = getStorageKey('admin');
+      const adminActors = this.data.actors.filter(a => !a._userId || a._userId === 'admin');
+      const adminData = { ...this.data, actors: adminActors.map(({ _userId, _ownerName, ...a }) => a) };
+      localStorage.setItem(key, JSON.stringify(adminData));
+    } else {
+      const userId = this._userId || 'guest';
+      const key = getStorageKey(userId);
+      localStorage.setItem(key, JSON.stringify(this.data));
+
+      if (this.db) {
+        const stateStr = JSON.stringify(this.data);
+        this.db.put({ networkState: stateStr, timestamp: Date.now() });
+      }
     }
     this.listeners.forEach(fn => fn(this.data));
   }
@@ -250,17 +350,19 @@ class Store {
     const newActor = {
       id: generateId(),
       name: actor.name || 'Unknown Subject',
-      caste: actor.caste || 'Brahmin Brahmin',
-      race: actor.race || 'Brahmin',
-      religion: actor.religion || 'Hindu',
-      spiritualAuthority: actor.spiritualAuthority || 'Brahmin Brahmin',
+      caste: actor.caste || 'Unknown',
+      race: actor.race || 'Unknown',
+      religion: actor.religion || 'Unknown',
+      spiritualAuthority: actor.spiritualAuthority || 'Unknown',
       age: actor.age || 'Unknown',
+      sex: actor.sex || 'Unknown',
       tribe: actor.tribe || '',
       host: actor.host || '',
       quote: actor.quote || '',
       imageUrl: null,
       tags: actor.tags || [],
       intelLeaks: [],
+      _userId: this._userId,
     };
     this.data.actors.push(newActor);
     this.save();
@@ -278,7 +380,6 @@ class Store {
   deleteActor(id) {
     this.data.actors = this.data.actors.filter(a => a.id !== id);
     this.data.edges = this.data.edges.filter(e => e.source !== id && e.target !== id);
-    // Remove from pipeline gates
     Object.values(this.data.pipelines).forEach(pipe => {
       pipe.gates.forEach(gate => {
         gate.taggedPeople = gate.taggedPeople.filter(p => p !== id);
@@ -296,13 +397,13 @@ class Store {
         title: leak.title || 'New Intel',
         description: leak.description || '',
         tags: leak.tags || [],
+        impact: leak.impact || '',
+        countermeasure: leak.countermeasure || '',
+        date: leak.date || new Date().toISOString(),
       };
       actor.intelLeaks.push(newLeak);
-      // Add tags to actor if not already present
       newLeak.tags.forEach(tag => {
-        if (!actor.tags.includes(tag)) {
-          actor.tags.push(tag);
-        }
+        if (!actor.tags.includes(tag)) actor.tags.push(tag);
       });
       this.save();
       return newLeak;
@@ -343,7 +444,7 @@ class Store {
   getAllTags() {
     const tags = new Set();
     this.data.actors.forEach(a => (a.tags || []).forEach(t => tags.add(t)));
-    
+
     Array.from(tags).forEach(tag => {
       if (!REGION_CORNERS[tag]) {
         const i = Object.keys(REGION_CORNERS).length;
@@ -416,7 +517,6 @@ class Store {
     const pipe = this.data.pipelines[pipelineTag];
     if (pipe) {
       pipe.gates = pipe.gates.filter(g => g.id !== gateId);
-      // Remove connections referencing this gate
       pipe.gates.forEach(g => {
         g.connections = g.connections.filter(c => c !== gateId);
       });
@@ -446,7 +546,6 @@ class Store {
     }
   }
 
-  // ─── Pipeline management ───
   ensurePipeline(tag) {
     if (!this.data.pipelines[tag]) {
       this.data.pipelines[tag] = {
