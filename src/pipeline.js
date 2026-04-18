@@ -3,10 +3,11 @@
 
 import { store, REGION_COLORS, NODE_COLORS } from "/src/store.js";
 
-let svgEl, container;
+let svgEl, dotSvgEl, container;
 let currentPipeline = null;
 let currentTag = null;
 let dragState = null;
+let dragRafPending = false;   // throttle drag renders to one per RAF
 let connectMode = null; // { fromGateId }
 let connectModeActive = false;
 let transitDots = [];
@@ -40,36 +41,38 @@ function buildOrthogonalPath(x1, y1, x2, y2) {
 }
 
 function createTransitDots() {
+  // Remove old dot elements from the dot layer
+  if (dotSvgEl) dotSvgEl.innerHTML = '';
   transitDots = [];
-  if (!currentPipeline) return;
+  if (!currentPipeline || !dotSvgEl) return;
 
   const gates = currentPipeline.gates;
+  // Limit total dots to prevent overload (cap at 30)
+  let dotCount = 0;
+  const MAX_DOTS = 30;
 
   gates.forEach(gate => {
     gate.connections.forEach(targetId => {
+      if (dotCount >= MAX_DOTS) return;
       const targetGate = gates.find(g => g.id === targetId);
       if (!targetGate) return;
 
-      // Create a dot for each tagged person
       gate.taggedPeople.forEach(personId => {
-        // Check if the target gate is pending - dot should stop before it
-        const stopAtTarget = targetGate.status === 'pending';
+        if (dotCount >= MAX_DOTS) return;
         const color = getActorColor(personId);
         const nameStr = getActorName(personId);
 
-        // CREATE DOM ELEMENTS ONCE
         const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
         circle.setAttribute('r', DOT_RADIUS);
         circle.setAttribute('fill', color);
         circle.setAttribute('class', 'transit-dot');
-        circle.setAttribute('filter', 'url(#dot-glow)');
+        // Removed dot-glow filter — it was triggering GPU compositing on every frame
         circle.style.cursor = 'pointer';
+        dotSvgEl.appendChild(circle);
 
-        svgEl.appendChild(circle);
-
-        // Tooltip on hover
         circle.addEventListener('mouseenter', () => {
           circle.setAttribute('r', DOT_RADIUS + 3);
+          container.querySelector('#transit-tooltip')?.remove();
           const tooltip = document.createElement('div');
           tooltip.className = 'node-tooltip visible';
           tooltip.style.left = (parseFloat(circle.getAttribute('cx')) + 20) + 'px';
@@ -90,13 +93,13 @@ function createTransitDots() {
           personId,
           fromGate: gate,
           toGate: targetGate,
-          progress: Math.random(), // Start at random position
+          progress: Math.random(),
           speed: DOT_SPEED + Math.random() * 0.3,
           stopped: false,
-          stopAtTarget,
           color,
           circleEl: circle
         });
+        dotCount++;
       });
     });
   });
@@ -108,18 +111,11 @@ function renderSVG() {
   const gates = currentPipeline.gates;
   let svgContent = '';
 
-  // Defs for filters and markers
+  // Minimal defs — no dot-glow filter (moved dots to separate layer)
   svgContent += `
     <defs>
       <filter id="gate-shadow" x="-20%" y="-20%" width="140%" height="140%">
         <feDropShadow dx="0" dy="2" stdDeviation="4" flood-opacity="0.15"/>
-      </filter>
-      <filter id="dot-glow" x="-50%" y="-50%" width="200%" height="200%">
-        <feGaussianBlur stdDeviation="3" result="blur"/>
-        <feMerge>
-          <feMergeNode in="blur"/>
-          <feMergeNode in="SourceGraphic"/>
-        </feMerge>
       </filter>
     </defs>
   `;
@@ -158,8 +154,8 @@ function renderSVG() {
     svgContent += `
       <g class="gate-node" data-gate-id="${gate.id}" transform="translate(${gate.x}, ${gate.y})">
         <rect width="${GATE_W}" height="${GATE_H}" fill="#1E2420" rx="4" ry="4" filter="url(#gate-shadow)"/>
-        <text x="12" y="17" fill="#6B7B6E" class="gate-number-text">GATE ${gateNum}</text>
-        <text x="12" y="35" fill="#F5F0E8" class="gate-label-text" font-size="13">${gate.name}</text>
+        <text x="12" y="17" fill="#A8C0AC" class="gate-number-text">GATE ${gateNum}</text>
+        <text x="12" y="35" fill="#FFFFFF" class="gate-label-text" font-size="13">${gate.name}</text>
         <rect x="${GATE_W - 48}" y="8" width="40" height="16" rx="3" fill="${statusColor}" class="gate-status-dot" data-gate-id="${gate.id}" opacity="0.9"/>
         <text x="${GATE_W - 28}" y="20" fill="white" font-size="8" text-anchor="middle" font-family="'JetBrains Mono', monospace" font-weight="600" pointer-events="none">${statusLabel}</text>
       </g>
@@ -212,7 +208,14 @@ function setupGateDragging() {
     if (gate) {
       gate.x = dragState.origX + dx;
       gate.y = dragState.origY + dy;
-      renderSVG();
+      // Throttle: only schedule one renderSVG per animation frame
+      if (!dragRafPending) {
+        dragRafPending = true;
+        requestAnimationFrame(() => {
+          dragRafPending = false;
+          renderSVG();
+        });
+      }
     }
   };
 
@@ -243,8 +246,8 @@ function setupGateClicks() {
         if (connectMode.fromGateId !== gateId) {
           store.connectGates(currentTag, connectMode.fromGateId, gateId);
           currentPipeline = store.getPipeline(currentTag);
-          createTransitDots();
           renderSVG();
+          createTransitDots();
         }
         connectMode = null;
         updateConnectButton();
@@ -264,8 +267,8 @@ function setupGateClicks() {
           const newStatus = gate.status === 'active' ? 'pending' : 'active';
           store.updateGate(currentTag, gateId, { status: newStatus });
           currentPipeline = store.getPipeline(currentTag);
-          createTransitDots();
           renderSVG();
+          createTransitDots();
         }
         return;
       }
@@ -410,7 +413,8 @@ function createPipelineUI() {
       <div class="pipeline-watermark">${currentTag}_ALPHA</div>
 
       <div class="pipeline-canvas-container">
-        <svg id="pipeline-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+        <svg id="pipeline-svg" xmlns="http://www.w3.org/2000/svg" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:auto;"></svg>
+        <svg id="pipeline-dot-svg" xmlns="http://www.w3.org/2000/svg" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;"></svg>
       </div>
 
       <div class="pipeline-bottom-bar">
@@ -454,6 +458,7 @@ function createPipelineUI() {
   `;
 
   svgEl = container.querySelector('#pipeline-svg');
+  dotSvgEl = container.querySelector('#pipeline-dot-svg');
 
   // Back
   container.querySelector('#pipeline-back').addEventListener('click', () => {
@@ -478,8 +483,8 @@ function createPipelineUI() {
           y: 150 + Math.random() * 200,
         });
         currentPipeline = store.getPipeline(currentTag);
-        createTransitDots();
         renderSVG();
+        createTransitDots(); // rebuild dots AFTER renderSVG
       }
     };
   });
@@ -503,6 +508,10 @@ function createPipelineUI() {
 
   renderSVG();
   createTransitDots();
+
+  // Cancel any leftover animation loop before starting a fresh one
+  if (animFrame) cancelAnimationFrame(animFrame);
+  animFrame = null;
   animateTransitDots();
 }
 
