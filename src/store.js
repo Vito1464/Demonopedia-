@@ -313,11 +313,43 @@ class Store {
 
   save() {
     if (auth.isAdmin()) {
-      // Admin saves go to admin's own store only (not merged)
-      const key = getStorageKey('admin');
-      const adminActors = this.data.actors.filter(a => !a._userId || a._userId === 'admin');
-      const adminData = { ...this.data, actors: adminActors.map(({ _userId, _ownerName, ...a }) => a) };
-      localStorage.setItem(key, JSON.stringify(adminData));
+      // Admin: write each actor/pipeline back to the user who owns it
+      const allUsers = auth.getAllUsers();
+
+      // Group actors by owner
+      const byUser = {};
+      this.data.actors.forEach(actor => {
+        const uid = actor._userId || 'admin';
+        if (!byUser[uid]) byUser[uid] = [];
+        byUser[uid].push(actor);
+      });
+
+      // Save each user's slice back to their own key
+      allUsers.forEach(user => {
+        const uid = user.id;
+        const key = getStorageKey(uid);
+        const existing = (() => {
+          try { return JSON.parse(localStorage.getItem(key) || 'null'); } catch { return null; }
+        })();
+        const base = existing || { actors: [], edges: [], pipelines: {}, nextNodeColor: 0 };
+
+        // Replace that user's actors with the current merged set for them (strip internal fields)
+        base.actors = (byUser[uid] || []).map(({ _userId, _ownerName, ...a }) => a);
+
+        // Pipelines: save all pipelines back (admin edits affect shared pipeline view)
+        base.pipelines = {};
+        Object.entries(this.data.pipelines).forEach(([tag, pipe]) => {
+          base.pipelines[tag] = pipe;
+        });
+
+        // Edges: save only edges between actors that belong to this user
+        const userActorIds = new Set(base.actors.map(a => a.id));
+        base.edges = this.data.edges.filter(
+          e => userActorIds.has(e.source) || userActorIds.has(e.target)
+        );
+
+        localStorage.setItem(key, JSON.stringify(base));
+      });
     } else {
       const userId = this._userId || 'guest';
       const key = getStorageKey(userId);

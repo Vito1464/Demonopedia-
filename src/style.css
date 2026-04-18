@@ -1006,6 +1006,7 @@ textarea { resize: vertical; }
   font-family: var(--font-heading);
   font-size: 18px;
   font-weight: 600;
+  color: var(--text-primary);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1013,7 +1014,7 @@ textarea { resize: vertical; }
 .gate-plan-date {
   font-family: var(--font-mono);
   font-size: 10px;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
@@ -1026,7 +1027,7 @@ textarea { resize: vertical; }
   border-radius: 8px;
   font-size: 14px;
   line-height: 1.7;
-  color: #e5e5e5;
+  color: var(--text-primary);
   resize: vertical;
 }
 .gate-plan-textarea:focus {

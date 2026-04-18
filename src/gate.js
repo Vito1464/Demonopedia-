@@ -10,7 +10,6 @@ function getActorColor(actorId) {
 }
 
 export function mountGateDetail(containerEl, pipelineTag, gateId) {
-  const _s=document.createElement('style');_s.textContent='.gate-view,.gate-view *{color:#111!important}';containerEl.prepend(_s);
   const pipeline = store.getPipeline(pipelineTag);
   if (!pipeline) {
     containerEl.innerHTML = '<div class="gate-detail-view"><p>Pipeline not found.</p></div>';
